@@ -7,14 +7,44 @@ name: Backend Services
       
 on:
   schedule:
-    - cron: '0 * * * *'  # 每天凌晨 0 点运行
+    - cron: '*/10 * * * *' # 每10分钟运行一次
   workflow_dispatch:    # 允许手动触发
       
       
 jobs:
   run-services:
     runs-on: ubuntu-latest
+    # Job 级别条件
+    if: github.event_name == 'workflow_dispatch' || always() # always() 确保 schedule 触发时运行检查
     steps:
+      # 检查上次运行状态，# 大于10分钟则再次运行
+      - name: Check last run
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          last_run=$(gh run list --workflow=${{ github.workflow }} --limit 1 --json conclusion,endedAt --jq '.[0]')
+          conclusion=$(echo "$last_run" | jq -r .conclusion)
+          ended_at=$(echo "$last_run" | jq -r .endedAt)
+          if [[ -z "$ended_at" ]]; then
+            ended_at="1970-01-01T00:00:00Z"
+          fi
+          ended_time=$(date -d "$ended_at" +%s)
+          current_time=$(date +%s)
+          time_diff=$((current_time - ended_time))
+          if [[ "$conclusion" == "success" && $time_diff -ge 600 ]] || [[ "$ended_at" == "1970-01-01T00:00:00Z" ]]; then
+            echo "should_run=true" >> $GITHUB_OUTPUT
+          else
+            echo "should_run=false" >> $GITHUB_OUTPUT
+          fi
+
+      # 如果 should_run 为 false 且不是手动触发，直接退出
+      - name: Exit if not needed
+        if: steps.check.outputs.should_run == 'false' && github.event_name != 'workflow_dispatch'
+        run: |
+          echo "No need to run, exiting..."
+          exit 0
+
       # 检出代码
       - name: Checkout code
         uses: actions/checkout@v4
