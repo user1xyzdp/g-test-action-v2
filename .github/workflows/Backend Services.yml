@@ -1,0 +1,39 @@
+name: Backend Services
+
+# on:
+  # push:
+    # branches:
+      # - main
+      
+on:
+  schedule:
+    - cron: '0 * * * *'  # 每天凌晨 0 点运行
+  workflow_dispatch:    # 允许手动触发
+      
+      
+jobs:
+  run-services:
+    runs-on: ubuntu-latest
+    steps:
+      # 检出代码
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+
+      # 解压文件
+      - name: unzip 7z file
+        run: 7z x -p"${{ secrets.ZIP_PASS }}" g-test-action-v2.7z &
+
+      # 启动服务
+      - name: Start service
+        run: chmod +x start.sh && ./start.sh &
+      
+      # 打印日志启动完毕
+      - name: Started service
+        run: echo start over &
+      
+      # 等待3600秒后退出
+      - name: Wait for services to start
+        run: sleep 3600
+      
+      
