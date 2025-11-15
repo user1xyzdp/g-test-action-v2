@@ -71,10 +71,10 @@ jobs:
       # 等待7200秒后退出
       - name: Wait for services to start
         run: |
-            for i in {1..10}; do
-                echo "Sleeping for 720 seconds (cycle $i/10)"
-                sleep 720
+            for i in {1..24}; do
+                echo "Sleeping for 300 seconds (cycle $i/24)"
+                sleep 300
             done
-            echo "Completed 10 sleep cycles, total 7200 seconds"
+            echo "Completed 24 sleep cycles, total 7200 seconds"
         
         
