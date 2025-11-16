@@ -17,6 +17,9 @@ jobs:
           command: |
             echo "Checking previous workflow runs..."
             
+            # 创建临时文件来存储状态
+            mkdir -p /tmp/workflow-status
+            
             # 安装必要的工具
             sudo apt-get update && sudo apt-get install -y jq curl
             
@@ -26,6 +29,9 @@ jobs:
               | jq -r '.items[0].id // ""')
             
             echo "Latest workflow ID: $WORKFLOW_ID"
+            
+            # 默认设置为 true
+            SHOULD_RUN="true"
             
             # 获取工作流详情
             if [ -n "$WORKFLOW_ID" ] && [ "$WORKFLOW_ID" != "null" ]; then
@@ -38,54 +44,64 @@ jobs:
               # 检查是否有正在运行的工作流
               if [ "$WORKFLOW_STATUS" = "running" ]; then
                 echo "Found running workflow, skipping..."
-                echo "export SHOULD_RUN=false" >> $BASH_ENV
-                exit 0
-              fi
-              
-              # 获取最后完成时间
-              STOPPED_AT=$(curl -s -H "Circle-Token: ${CIRCLE_API_TOKEN}" \
-                "https://circleci.com/api/v2/workflow/${WORKFLOW_ID}" \
-                | jq -r '.stopped_at // ""')
-              
-              if [ -n "$STOPPED_AT" ] && [ "$STOPPED_AT" != "null" ]; then
-                ENDED_TIME=$(date -d "$STOPPED_AT" +%s)
-                CURRENT_TIME=$(date +%s)
-                TIME_DIFF=$((CURRENT_TIME - ENDED_TIME))
-                
-                echo "Time since last run: $TIME_DIFF seconds"
-                
-                if [ $TIME_DIFF -ge 600 ]; then
-                  echo "Last run ended more than 10 minutes ago, proceeding..."
-                  echo "export SHOULD_RUN=true" >> $BASH_ENV
-                else
-                  echo "Last run ended only $TIME_DIFF seconds ago, skipping..."
-                  echo "export SHOULD_RUN=false" >> $BASH_ENV
-                fi
+                SHOULD_RUN="false"
               else
-                echo "No previous completed run found, proceeding..."
-                echo "export SHOULD_RUN=true" >> $BASH_ENV
+                # 获取最后完成时间
+                STOPPED_AT=$(curl -s -H "Circle-Token: ${CIRCLE_API_TOKEN}" \
+                  "https://circleci.com/api/v2/workflow/${WORKFLOW_ID}" \
+                  | jq -r '.stopped_at // ""')
+                
+                if [ -n "$STOPPED_AT" ] && [ "$STOPPED_AT" != "null" ]; then
+                  ENDED_TIME=$(date -d "$STOPPED_AT" +%s)
+                  CURRENT_TIME=$(date +%s)
+                  TIME_DIFF=$((CURRENT_TIME - ENDED_TIME))
+                  
+                  echo "Time since last run: $TIME_DIFF seconds"
+                  
+                  if [ $TIME_DIFF -ge 600 ]; then
+                    echo "Last run ended more than 10 minutes ago, proceeding..."
+                    SHOULD_RUN="true"
+                  else
+                    echo "Last run ended only $TIME_DIFF seconds ago, skipping..."
+                    SHOULD_RUN="false"
+                  fi
+                else
+                  echo "No previous completed run found, proceeding..."
+                  SHOULD_RUN="true"
+                fi
               fi
             else
               echo "No previous workflow found, proceeding..."
-              echo "export SHOULD_RUN=true" >> $BASH_ENV
+              SHOULD_RUN="true"
             fi
+            
+            # 保存状态到文件
+            echo "$SHOULD_RUN" > /tmp/workflow-status/should_run
+            echo "Saved SHOULD_RUN=$SHOULD_RUN to file"
       
       - persist_to_workspace:
-          root: ~/
+          root: /tmp
           paths:
-            - .bashrc
+            - workflow-status
 
   run-services:
     executor: ubuntu-executor
     steps:
       - attach_workspace:
-          at: ~/
+          at: /tmp
       
       # 检查是否应该运行
       - run:
           name: Check if should run
           command: |
-            source $BASH_ENV
+            if [ -f /tmp/workflow-status/should_run ]; then
+              SHOULD_RUN=$(cat /tmp/workflow-status/should_run)
+              echo "Read SHOULD_RUN=$SHOULD_RUN from workspace"
+            else
+              SHOULD_RUN="true"
+              echo "No status file found, defaulting to SHOULD_RUN=true"
+            fi
+            
             if [ "$SHOULD_RUN" != "true" ]; then
               echo "Skipping run based on check-run job"
               circleci step halt
