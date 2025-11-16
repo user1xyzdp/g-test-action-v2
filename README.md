@@ -5,7 +5,10 @@
 可以触发，但需要使用特定方法。
 
 方法 1：空提交（推荐）
+
 bash
+
 git commit --allow-empty -m "Trigger workflow"
+
 git push
 
