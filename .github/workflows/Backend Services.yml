@@ -123,6 +123,6 @@ jobs:
       - name: Log skip reason
         run: |
           echo "Skipping run-services: not a workflow_dispatch and should_run is false"
-          echo "Last check: time_diff=$$ {{ needs.check-run.outputs.time_diff }} seconds, conclusion= $${{ needs.check-run.outputs.conclusion }}"
+          
 
           
