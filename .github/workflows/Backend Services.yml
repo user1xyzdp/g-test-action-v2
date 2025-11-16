@@ -17,7 +17,7 @@ jobs:
     outputs:
       should_run: ${{ steps.check.outputs.should_run }}
     steps:
-      # 检查上次运行状态，# 大于10分钟则再次运行
+      # 检查上次运行状态，# 大于5分钟则再次运行
       - name: Check last run
         id: check
         env:
