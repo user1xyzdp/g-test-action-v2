@@ -1,16 +1,15 @@
 name: Backend Services
 
 # on:
-  # push:
-    # branches:
-      # - main
-      
+# push:
+# branches:
+# - main
+
 on:
   schedule:
-    - cron: '*/10 * * * *' # 每10分钟运行一次
-  workflow_dispatch:    # 允许手动触发
-      
-      
+    - cron: "*/10 * * * *" # 每10分钟运行一次
+  workflow_dispatch: # 允许手动触发
+
 jobs:
   check-run:
     runs-on: ubuntu-latest
@@ -31,40 +30,40 @@ jobs:
             --limit 13 \
             --json conclusion,updatedAt,databaseId,status \
             --jq '[.[] | select(.databaseId != ${{ github.run_id }})]' || echo "[]")
-          
+
           echo "recent_runs: $recent_runs"
-          
+
           # 检查是否有正在执行中的运行
           running_count=$(echo "$recent_runs" | jq '[.[] | select(.status == "in_progress" or .status == "queued" or .status == "waiting")] | length')
           echo "running_count: $running_count"
-          
+
           if [[ $running_count -gt 0 ]]; then
             echo "should_run=false" >> $GITHUB_OUTPUT
             echo "Setting should_run=false (found $running_count running workflow(s) in recent 13 runs)"
             exit 0
           fi
-          
+
           # 如果没有正在运行的，获取最近一次完成的运行
           last_completed=$(echo "$recent_runs" | jq '[.[] | select(.conclusion != null)][0]')
           echo "last_completed: $last_completed"
-          
+
           conclusion=$(echo "$last_completed" | jq -r '.conclusion // ""')
           updated_at=$(echo "$last_completed" | jq -r '.updatedAt // ""')
-          
+
           echo "conclusion: $conclusion, updated_at: $updated_at"
-          
+
           # 如果没有找到之前的运行记录，允许运行
           if [[ -z "$updated_at" || "$updated_at" == "null" || "$updated_at" == "" ]]; then
             echo "should_run=true" >> $GITHUB_OUTPUT
             echo "Setting should_run=true (no previous completed run found)"
             exit 0
           fi
-          
+
           ended_time=$(date -d "$updated_at" +%s)
           current_time=$(date +%s)
           time_diff=$((current_time - ended_time))
           echo "time_diff: $time_diff seconds"
-          
+
           # 检查是否已完成且超过10分钟
           if [[ $time_diff -ge 600 ]]; then
             echo "should_run=true" >> $GITHUB_OUTPUT
@@ -73,7 +72,7 @@ jobs:
             echo "should_run=false" >> $GITHUB_OUTPUT
             echo "Setting should_run=false (only $time_diff seconds since last run)"
           fi
-          
+
   run-services:
     runs-on: ubuntu-latest
     needs: check-run
@@ -83,7 +82,6 @@ jobs:
       # 检出代码
       - name: Checkout code
         uses: actions/checkout@v4
-      
 
       # 解压文件
       - name: unzip 7z file
@@ -91,30 +89,23 @@ jobs:
 
       # 启动服务
       - name: Start service
-        run: chmod +x start.sh && ./start.sh &
-      
-      # 打印日志启动完毕
-      - name: Started service
-        run: echo start over &
-      
-      # 等待7200秒后退出
-      - name: Wait for services to start
         run: |
-            for i in {1..24}; do
-                echo "Sleeping for 300 seconds (cycle $i/24)"
-                sleep 300
-            done
-            echo "Completed 24 sleep cycles, total 7200 seconds"
-      
-      # 停止服务
-      - name: stop service
-        run: chmod +x stop.sh && ./stop.sh &
-      
+          chmod +x start.sh && ./start.sh &
+          # 打印日志启动完毕
+          echo start over &
+          # 等待7200秒后退出
+          for i in {1..24}; do
+              echo "Sleeping for 300 seconds (cycle $i/24)"
+              sleep 300
+          done
+          echo "Completed 24 sleep cycles, total 7200 seconds"
+          # 停止服务
+          chmod +x stop.sh && ./stop.sh &
+
       # 删除仓库目录的文件
       - name: del git file
         run: rm -rf * &
 
-      
   skip-services:
     runs-on: ubuntu-latest
     needs: check-run
@@ -123,6 +114,3 @@ jobs:
       - name: Log skip reason
         run: |
           echo "Skipping run-services: not a workflow_dispatch and should_run is false"
-          
-
-          
