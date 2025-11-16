@@ -21,3 +21,6 @@ travis-ci 2
 Owner ggg5945 is not on a new pricing.
 
 
+https://app.circleci.com/home
+docker方式部署的，需要保持前台运行不然会没有效果，先暂时不改了
+
