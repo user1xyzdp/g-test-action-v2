@@ -11,7 +11,7 @@ image: Ubuntu2204
 # 环境变量
 environment:
   ZIP_PASS:
-    secure: YOUR_ENCRYPTED_PASSWORD_HERE
+    secure: $(ZIP_PASS)
 
 # 缓存设置（可选）
 cache:
