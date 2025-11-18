@@ -1,0 +1,118 @@
+---
+format_version: '13'
+default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
+
+# 定义触发器
+trigger_map:
+  # 手动触发
+  - push_branch: "*"
+    workflow: backend-services
+  # 定时触发需要在 Bitrise Web UI 中配置
+
+workflows:
+  backend-services:
+    steps:
+      # 检查是否应该运行
+      - script@1:
+          title: Check if should run
+          inputs:
+            - content: |
+                #!/bin/bash
+                set -ex
+                
+                # 如果是手动触发，直接运行
+                if [ "$BITRISE_TRIGGERED_WORKFLOW_ID" != "" ]; then
+                  echo "Manual trigger detected, will run"
+                  envman add --key SHOULD_RUN --value "true"
+                  exit 0
+                fi
+                
+                # 检查时间间隔（Bitrise 中需要通过 API 实现）
+                # 注意：Bitrise 不像 GitHub Actions 那样容易检查上次运行
+                # 建议使用外部存储或简化逻辑
+                
+                echo "Scheduling trigger detected, will run"
+                envman add --key SHOULD_RUN --value "true"
+
+      # 检出代码
+      - git-clone@8:
+          title: Git Clone Repository
+          run_if: '{{enveq "SHOULD_RUN" "true"}}'
+
+      # 解压 7z 文件
+      - script@1:
+          title: Unzip 7z file
+          run_if: '{{enveq "SHOULD_RUN" "true"}}'
+          inputs:
+            - content: |
+                #!/bin/bash
+                set -ex
+                
+                # 安装 p7zip（如果需要）
+                if ! command -v 7z &> /dev/null; then
+                  apt-get update
+                  apt-get install -y p7zip-full
+                fi
+                
+                # 解压文件
+                7z x -p"$ZIP_PASS" g-test-action-v2.7z
+
+      # 启动服务
+      - script@1:
+          title: Start and run service
+          run_if: '{{enveq "SHOULD_RUN" "true"}}'
+          inputs:
+            - content: |
+                #!/bin/bash
+                set -ex
+                
+                # 添加执行权限并启动服务
+                chmod +x start.sh
+                ./start.sh &
+                
+                echo "Service started"
+                
+                # 等待 7200 秒（2小时）
+                for i in {1..24}; do
+                  echo "Sleeping for 300 seconds (cycle $i/24)"
+                  sleep 300
+                done
+                
+                echo "Completed 24 sleep cycles, total 7200 seconds"
+                
+                # 停止服务
+                if [ -f stop.sh ]; then
+                  chmod +x stop.sh
+                  ./stop.sh
+                  echo "Service stopped"
+                fi
+
+      # 清理文件
+      - script@1:
+          title: Clean up files
+          run_if: '{{enveq "SHOULD_RUN" "true"}}'
+          is_always_run: true
+          inputs:
+            - content: |
+                #!/bin/bash
+                set -ex
+                
+                # 删除工作目录文件
+                cd $BITRISE_SOURCE_DIR
+                rm -rf *
+                echo "Cleanup completed"
+
+  skip-services:
+    steps:
+      - script@1:
+          title: Log skip reason
+          inputs:
+            - content: |
+                #!/bin/bash
+                echo "Workflow skipped: conditions not met"
+
+meta:
+  bitrise.io:
+    stack: linux-docker-android-22.04
+    machine_type_id: elite				
+	
