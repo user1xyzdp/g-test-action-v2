@@ -72,13 +72,13 @@ workflows:
                 
                 echo "Service started"
                 
-                # 等待 28800 秒（8小时）
-                for i in {1..96}; do
-                  echo "Sleeping for 300 seconds (cycle $i/96)"
+                # 等待 10800 秒（bitrise限制最多3.5小时，这里用3小时）
+                for i in {1..36}; do
+                  echo "Sleeping for 300 seconds (cycle $i/36)"
                   sleep 300
                 done
                 
-                echo "Completed 96 sleep cycles, total 28800 seconds"
+                echo "Completed 36 sleep cycles, total 10800 seconds"
                 
                 # 停止服务
                 if [ -f stop.sh ]; then
