@@ -44,8 +44,10 @@ jobs:
           fi
 
           # 如果没有正在运行的，获取最近一次完成的运行
-          last_completed=$(echo "$recent_runs" | jq '[.[] | select(.conclusion != null)][0]')
-          echo "last_completed: $last_completed"
+          last_completed=$(echo "$recent_runs" | \
+          jq '[.[] | select(.conclusion == "success" or .conclusion == "failure" or .conclusion == "cancelled")] | sort_by(.updatedAt) | reverse | .[0]')
+          # 打印出来调试一下，确认取到的是哪个时间
+          echo "Selected Last Run UpdatedAt: $(echo "$last_completed" | jq -r '.updatedAt')"
 
           conclusion=$(echo "$last_completed" | jq -r '.conclusion // ""')
           updated_at=$(echo "$last_completed" | jq -r '.updatedAt // ""')
