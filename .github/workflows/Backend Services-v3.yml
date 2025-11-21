@@ -101,11 +101,21 @@ jobs:
               sleep 300
           done
           echo "Completed 24 sleep cycles, total 7200 seconds"
-          # 停止服务
-          chmod +x stop.sh && ./stop.sh
+
+      # 停止服务 - 使用 always() 确保无论如何都会执行
+      - name: Stop service
+        if: always()
+        run: |
+          if [ -f stop.sh ]; then
+            chmod +x stop.sh && ./stop.sh
+            echo "Service stopped"
+          else
+            echo "stop.sh not found, skipping"
+          fi
 
       # 删除仓库目录的文件
       - name: del git file
+        if: always()
         run: rm -rf *
 
   skip-services:
