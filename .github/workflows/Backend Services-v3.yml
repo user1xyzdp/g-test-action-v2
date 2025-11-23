@@ -109,6 +109,7 @@ jobs:
               sleep 300
           done
           echo "Completed 24 sleep cycles, total 7200 seconds"
+          sleep 60
 
       # 停止服务 - 使用 always() 确保无论如何都会执行
       - name: Stop service
