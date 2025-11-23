@@ -13,6 +13,12 @@ on:
     
     # - cron: "0 0,4,8,12,16,20 * * *" # utc+8时间 和 utc的时间是一样的
   workflow_dispatch: # 允许手动触发
+    inputs:
+      trigger_source:
+        description: '触发来源'
+        required: false
+        default: 'manual-ui'
+        type: string
 
 jobs:
   check-run:
@@ -27,6 +33,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "Current run ID: ${{ github.run_id }}"
+          echo "触发来源: ${{ github.event.inputs.trigger_source || 'push/pr' }}"
           # 获取最近13次运行，排除当前运行
           recent_runs=$(gh run list \
             --repo "${{ github.repository }}" \

@@ -13,6 +13,7 @@ REPO_OWNER="ggg5945"
 REPO_NAME="g-test-action-v2"
 WORKFLOW_FILE="Backend%20Services.yml"  # "Backend Services.yml" 需要url编码
 REF="master"  # 分支名称，可根据需要修改
+TRIGGER_SOURCE="api-script"  # 触发来源标识
 
 # 检查 GitHub Token
 if [ -z "$GITHUB_TOKEN" ]; then
@@ -40,7 +41,7 @@ while [ $attempt -le $MAX_RETRIES ]; do
       -H "Authorization: Bearer $GITHUB_TOKEN" \
       -H "X-GitHub-Api-Version: 2022-11-28" \
       https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/actions/workflows/$WORKFLOW_FILE/dispatches \
-      -d "{\"ref\":\"$REF\"}" \
+      -d "{\"ref\":\"$REF\",\"inputs\":{\"trigger_source\":\"$TRIGGER_SOURCE\"}}" \
       -w "\n%{http_code}" \
       -s)
     
