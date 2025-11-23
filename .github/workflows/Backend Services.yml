@@ -18,7 +18,14 @@ on:
         description: '触发来源'
         required: false
         default: 'manual-ui'
-        type: string
+        type: choice
+        options:
+          - manual-ui
+          - api-script
+          - auto-deployment
+          - hotfix
+          - scheduled-task
+          - testing
 
 jobs:
   check-run:
