@@ -71,3 +71,5 @@ while [ $attempt -le $MAX_RETRIES ]; do
         fi
     fi
 done
+
+echo "[$(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S')] ------------------------------------------------ over ------------------------------------------------"
