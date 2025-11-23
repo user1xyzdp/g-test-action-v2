@@ -2,6 +2,9 @@
 
 # GitHub Workflow 触发脚本
 # 用于触发指定的 GitHub Actions workflow
+# 添加如下定时任务
+# 0 2,6,10,14,18,22 * * * /root/GitHub_Workflow-v3.sh>>/root/GitHub_Workflow-v3.log
+
 
 # 配置变量
 GITHUB_TOKEN="${GITHUB_TOKEN}"  # 从环境变量读取 GitHub Token。在 Tokens (classic) https://github.com/settings/tokens 这个页面申请 
