@@ -27,6 +27,9 @@ on:
           - 'scheduled-task(定时任务)'
           - 'testing(测试环境)'
 
+# Backend Services-v3 #53: Manually run by ggg5945
+run-name: "#${{ github.run_number }} - ${{ github.event.inputs.trigger_source || 'Push/PR触发' }} by ${{ github.actor }}"
+
 jobs:
   check-run:
     runs-on: ubuntu-latest
