@@ -27,8 +27,8 @@ on:
           - 'scheduled-task(定时任务)'
           - 'testing(测试环境)'
 
-# Backend Services-v3 #53: Manually run by ggg5945
-run-name: "#${{ github.run_number }} - ${{ github.event.inputs.trigger_source || 'Push/PR触发' }} by ${{ github.actor }}"
+# “Backend Services-v3” 改为 “Backend Services-v3 - manual-ui(手动触发)” 这种格式
+run-name: "${{ github.workflow }} - ${{ github.event.inputs.trigger_source || 'Push/PR触发' }}"
 
 jobs:
   check-run:
