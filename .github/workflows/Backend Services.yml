@@ -32,7 +32,7 @@ run-name: "${{ github.workflow }} - ${{ github.event.inputs.trigger_source || 'P
 
 jobs:
   check-run:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       should_run: ${{ steps.check.outputs.should_run }}
     steps:
@@ -101,7 +101,7 @@ jobs:
           # fi
 
   run-services:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: check-run
     # Job 级别条件
     if: github.event_name == 'workflow_dispatch' || needs.check-run.outputs.should_run == 'true'
@@ -145,7 +145,7 @@ jobs:
         run: rm -rf *
 
   skip-services:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: check-run
     if: github.event_name != 'workflow_dispatch' && needs.check-run.outputs.should_run != 'true'
     steps:
